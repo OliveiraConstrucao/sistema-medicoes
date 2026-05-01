@@ -135,7 +135,6 @@ export default function Home() {
 
   async function excluirMedicao(id: number) {
     const confirmar = confirm('Tem certeza que deseja excluir esta medição?')
-
     if (!confirmar) return
 
     const { error } = await supabase.from('medicoes').delete().eq('id', id)
@@ -225,12 +224,8 @@ export default function Home() {
     <html>
       <head>
         <title>Medição</title>
-
         <style>
-          @page {
-            size: A4 portrait;
-            margin: 6mm;
-          }
+          @page { size: A4 portrait; margin: 6mm; }
 
           * {
             box-sizing: border-box;
@@ -346,9 +341,7 @@ export default function Home() {
           }
 
           @media print {
-            .acoes-visualizacao {
-              display: none;
-            }
+            .acoes-visualizacao { display: none; }
           }
         </style>
       </head>
@@ -363,9 +356,7 @@ export default function Home() {
             <img src="/logo.png" />
           </div>
 
-          <div class="faixa-preta">
-            DESPESAS COM DIÁRIAS
-          </div>
+          <div class="faixa-preta">DESPESAS COM DIÁRIAS</div>
 
           <table class="descricao">
             <thead>
@@ -492,17 +483,13 @@ Status: ${m.status}`
   )
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <aside className="hidden md:flex flex-col w-64 bg-gray-900 text-white p-6">
-        <h2 className="text-xl font-bold mb-6">Oliveira Construção</h2>
-      </aside>
-
-      <main className="flex-1 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-100">
+      <main className="p-3 md:p-8 max-w-7xl mx-auto">
         <h1 className="text-2xl md:text-4xl font-bold mb-4">
           Painel de Controle
         </h1>
 
-        <div className="bg-white p-5 rounded-2xl shadow mb-6">
+        <div className="bg-white p-4 md:p-5 rounded-2xl shadow mb-5">
           <h2 className="font-bold mb-4">
             {editandoId ? 'Editar Medição' : 'Nova Medição'}
           </h2>
@@ -512,14 +499,14 @@ Status: ${m.status}`
               type="date"
               value={dataInicio}
               onChange={(e) => setDataInicio(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             />
 
             <input
               type="date"
               value={dataFim}
               onChange={(e) => setDataFim(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             />
 
             <input
@@ -527,7 +514,7 @@ Status: ${m.status}`
               placeholder="Diária"
               value={diaria}
               onChange={(e) => setDiaria(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             />
 
             <input
@@ -535,7 +522,7 @@ Status: ${m.status}`
               placeholder="Caminhão"
               value={caminhao}
               onChange={(e) => setCaminhao(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             />
 
             <input
@@ -543,13 +530,13 @@ Status: ${m.status}`
               placeholder="Retro"
               value={retro}
               onChange={(e) => setRetro(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             />
 
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border p-3 rounded-xl w-full"
             >
               <option>Aberta</option>
               <option>Fechada</option>
@@ -562,7 +549,7 @@ Status: ${m.status}`
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col md:flex-row gap-3 mt-4">
             <button
               onClick={salvarMedicao}
               disabled={salvando}
@@ -586,7 +573,7 @@ Status: ${m.status}`
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
           <Card titulo="Total Geral" valor={moeda(totalGeral)} />
           <Card titulo="Medições" valor={String(medicoes.length)} />
           <Card
@@ -595,71 +582,128 @@ Status: ${m.status}`
           />
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow overflow-x-auto">
+        <div className="bg-white p-4 md:p-5 rounded-2xl shadow">
           <h2 className="font-bold mb-4">Medições</h2>
 
-          <table className="w-full text-left min-w-[1100px]">
-            <thead>
-              <tr className="border-b">
-                <th>Período</th>
-                <th>Diária</th>
-                <th>Caminhão</th>
-                <th>Retro</th>
-                <th>Status</th>
-                <th>Total</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
+          {/* MOBILE */}
+          <div className="md:hidden flex flex-col gap-4">
+            {medicoes.map((m) => (
+              <div key={m.id} className="border rounded-2xl p-4 shadow-sm">
+                <div className="flex justify-between gap-3 mb-2">
+                  <strong>{m.periodo}</strong>
+                  <span className="font-bold">{moeda(Number(m.total || 0))}</span>
+                </div>
 
-            <tbody>
-              {medicoes.map((m) => (
-                <tr key={m.id} className="border-b">
-                  <td>{m.periodo}</td>
-                  <td>{moeda(Number(m.diaria || 0))}</td>
-                  <td>{moeda(Number(m.caminhao || 0))}</td>
-                  <td>{moeda(Number(m.retro || 0))}</td>
-                  <td>{m.status}</td>
-                  <td>{moeda(Number(m.total || 0))}</td>
-                  <td className="flex gap-2 py-2 flex-wrap">
-                    <button
-                      onClick={() => editarMedicao(m)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
-                    >
-                      Editar
-                    </button>
+                <p>Diária: {moeda(Number(m.diaria || 0))}</p>
+                <p>Caminhão: {moeda(Number(m.caminhao || 0))}</p>
+                <p>Retro: {moeda(Number(m.retro || 0))}</p>
+                <p>Status: {m.status}</p>
 
-                    <button
-                      onClick={() => excluirMedicao(m.id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded-lg"
-                    >
-                      Excluir
-                    </button>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={() => editarMedicao(m)}
+                    className="bg-yellow-500 text-white px-3 py-2 rounded-lg"
+                  >
+                    Editar
+                  </button>
 
-                    <button
-                      onClick={() => visualizarPDF(m)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded-lg"
-                    >
-                      Visualizar
-                    </button>
+                  <button
+                    onClick={() => excluirMedicao(m.id)}
+                    className="bg-red-600 text-white px-3 py-2 rounded-lg"
+                  >
+                    Excluir
+                  </button>
 
-                    <button
-                      onClick={() => gerarPDF(m)}
-                      className="bg-gray-800 text-white px-3 py-1 rounded-lg"
-                    >
-                      PDF
-                    </button>
+                  <button
+                    onClick={() => visualizarPDF(m)}
+                    className="bg-blue-600 text-white px-3 py-2 rounded-lg"
+                  >
+                    Visualizar
+                  </button>
 
-                    <button
-                      onClick={() => enviarWhatsApp(m)}
-                      className="bg-green-600 text-white px-3 py-1 rounded-lg"
-                    >
-                      WhatsApp
-                    </button>
-                  </td>
+                  <button
+                    onClick={() => gerarPDF(m)}
+                    className="bg-gray-800 text-white px-3 py-2 rounded-lg"
+                  >
+                    PDF
+                  </button>
+
+                  <button
+                    onClick={() => enviarWhatsApp(m)}
+                    className="bg-green-600 text-white px-3 py-2 rounded-lg col-span-2"
+                  >
+                    WhatsApp
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left min-w-[1100px]">
+              <thead>
+                <tr className="border-b">
+                  <th>Período</th>
+                  <th>Diária</th>
+                  <th>Caminhão</th>
+                  <th>Retro</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {medicoes.map((m) => (
+                  <tr key={m.id} className="border-b">
+                    <td>{m.periodo}</td>
+                    <td>{moeda(Number(m.diaria || 0))}</td>
+                    <td>{moeda(Number(m.caminhao || 0))}</td>
+                    <td>{moeda(Number(m.retro || 0))}</td>
+                    <td>{m.status}</td>
+                    <td>{moeda(Number(m.total || 0))}</td>
+                    <td className="flex gap-2 py-2 flex-wrap">
+                      <button
+                        onClick={() => editarMedicao(m)}
+                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        onClick={() => excluirMedicao(m.id)}
+                        className="bg-red-600 text-white px-3 py-1 rounded-lg"
+                      >
+                        Excluir
+                      </button>
+
+                      <button
+                        onClick={() => visualizarPDF(m)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded-lg"
+                      >
+                        Visualizar
+                      </button>
+
+                      <button
+                        onClick={() => gerarPDF(m)}
+                        className="bg-gray-800 text-white px-3 py-1 rounded-lg"
+                      >
+                        PDF
+                      </button>
+
+                      <button
+                        onClick={() => enviarWhatsApp(m)}
+                        className="bg-green-600 text-white px-3 py-1 rounded-lg"
+                      >
+                        WhatsApp
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
     </div>
