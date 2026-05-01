@@ -456,14 +456,16 @@ Status: ${m.status}`
   )
 
   return (
-    <div className="min-h-screen bg-gray-100 md:flex">
-      <aside className="hidden md:flex md:w-72 md:flex-col md:bg-slate-950 md:text-white md:fixed md:inset-y-0">
+    <div className="min-h-screen bg-slate-100 md:flex">
+      <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-72 md:flex-col md:bg-slate-950 md:text-white">
         <div className="flex flex-col items-center border-b border-slate-800 p-6">
-          <img
-            src="/logopainel.png"
-            alt="Logo Oliveira Construção"
-            className="mb-3 h-24 w-24 rounded-full object-contain"
-          />
+          <div className="mb-3 flex h-28 w-28 items-center justify-center rounded-full bg-white p-2 shadow">
+            <img
+              src="/logopainel.png"
+              alt="Logo Oliveira Construção"
+              className="h-full w-full rounded-full object-contain"
+            />
+          </div>
 
           <h1 className="text-center text-xl font-bold">
             Oliveira Construção
@@ -475,20 +477,33 @@ Status: ${m.status}`
         </div>
 
         <nav className="flex-1 space-y-2 p-4">
-          <button className="w-full rounded-xl bg-slate-800 px-4 py-3 text-left font-medium">
-            📊 Painel de Controle
+          <button className="flex w-full items-center gap-3 rounded-xl bg-slate-800 px-4 py-3 text-left font-medium">
+            <span>📊</span>
+            Painel
           </button>
 
-          <button className="w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
-            📄 Medições
+          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
+            <span>📄</span>
+            Medições
           </button>
 
-          <button className="w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
-            ⚙️ Configurações
+          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
+            <span>📁</span>
+            Relatórios
+          </button>
+
+          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
+            <span>⚙️</span>
+            Configurações
           </button>
         </nav>
 
         <div className="border-t border-slate-800 p-4">
+          <div className="mb-4 rounded-xl bg-slate-900 p-3">
+            <p className="text-xs text-slate-400">Usuário logado</p>
+            <p className="font-bold">Administrador</p>
+          </div>
+
           <button
             onClick={sair}
             className="w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white hover:bg-red-700"
@@ -502,15 +517,17 @@ Status: ${m.status}`
         <div className="mb-5 rounded-2xl bg-white p-4 shadow md:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <img
-                src="/logopainel.png"
-                alt="Logo Oliveira Construção"
-                className="h-14 w-14 rounded-full object-contain"
-              />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white p-1 shadow">
+                <img
+                  src="/logopainel.png"
+                  alt="Logo Oliveira Construção"
+                  className="h-full w-full rounded-full object-contain"
+                />
+              </div>
 
               <div>
                 <h1 className="text-lg font-bold">Oliveira Construção</h1>
-                <p className="text-sm text-gray-500">Sistema de Medições</p>
+                <p className="text-sm text-gray-500">Administrador</p>
               </div>
             </div>
 
@@ -523,16 +540,23 @@ Status: ${m.status}`
           </div>
         </div>
 
-        <div className="mb-6 hidden md:block">
-          <h2 className="text-3xl font-bold text-slate-900">
-            Painel de Controle
-          </h2>
-          <p className="text-gray-500">
-            Controle de medições, valores, PDFs e envio por WhatsApp.
-          </p>
-        </div>
+        <header className="mb-6 hidden items-center justify-between rounded-2xl bg-white p-5 shadow md:flex">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Painel de Controle
+            </h2>
+            <p className="text-gray-500">
+              Controle de medições, PDFs e envio por WhatsApp.
+            </p>
+          </div>
 
-        <div className="mb-5 rounded-2xl bg-white p-4 shadow md:p-5">
+          <div className="rounded-xl bg-slate-100 px-4 py-3 text-right">
+            <p className="text-xs text-gray-500">Usuário logado</p>
+            <p className="font-bold text-slate-900">Administrador</p>
+          </div>
+        </header>
+
+        <section className="mb-5 rounded-2xl bg-white p-4 shadow md:p-5">
           <h2 className="mb-4 font-bold">
             {editandoId ? 'Editar Medição' : 'Nova Medição'}
           </h2>
@@ -614,9 +638,9 @@ Status: ${m.status}`
               </button>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <section className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Card titulo="Total Geral" valor={moeda(totalGeral)} destaque="green" />
           <Card titulo="Medições" valor={String(medicoes.length)} destaque="blue" />
           <Card
@@ -624,9 +648,9 @@ Status: ${m.status}`
             valor={medicoes[0] ? moeda(Number(medicoes[0].total)) : 'R$ 0,00'}
             destaque="orange"
           />
-        </div>
+        </section>
 
-        <div className="rounded-2xl bg-white p-4 shadow md:p-5">
+        <section className="rounded-2xl bg-white p-4 shadow md:p-5">
           <h2 className="mb-4 text-lg font-bold">Medições Cadastradas</h2>
 
           <div className="flex flex-col gap-4 md:hidden">
@@ -692,7 +716,7 @@ Status: ${m.status}`
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   )
