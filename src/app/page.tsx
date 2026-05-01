@@ -456,19 +456,80 @@ Status: ${m.status}`
   )
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="mx-auto max-w-7xl p-3 md:p-8">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold md:text-4xl">
-            Painel de Controle
+    <div className="min-h-screen bg-gray-100 md:flex">
+      <aside className="hidden md:flex md:w-72 md:flex-col md:bg-slate-950 md:text-white md:fixed md:inset-y-0">
+        <div className="flex flex-col items-center border-b border-slate-800 p-6">
+          <img
+            src="/logopainel.png"
+            alt="Logo Oliveira Construção"
+            className="mb-3 h-24 w-24 rounded-full object-contain"
+          />
+
+          <h1 className="text-center text-xl font-bold">
+            Oliveira Construção
           </h1>
 
+          <p className="mt-1 text-center text-sm text-slate-400">
+            Sistema de Medições
+          </p>
+        </div>
+
+        <nav className="flex-1 space-y-2 p-4">
+          <button className="w-full rounded-xl bg-slate-800 px-4 py-3 text-left font-medium">
+            📊 Painel de Controle
+          </button>
+
+          <button className="w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
+            📄 Medições
+          </button>
+
+          <button className="w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-800">
+            ⚙️ Configurações
+          </button>
+        </nav>
+
+        <div className="border-t border-slate-800 p-4">
           <button
             onClick={sair}
-            className="rounded-lg bg-red-600 px-3 py-2 text-white"
+            className="w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white hover:bg-red-700"
           >
             Sair
           </button>
+        </div>
+      </aside>
+
+      <main className="w-full p-3 md:ml-72 md:p-8">
+        <div className="mb-5 rounded-2xl bg-white p-4 shadow md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logopainel.png"
+                alt="Logo Oliveira Construção"
+                className="h-14 w-14 rounded-full object-contain"
+              />
+
+              <div>
+                <h1 className="text-lg font-bold">Oliveira Construção</h1>
+                <p className="text-sm text-gray-500">Sistema de Medições</p>
+              </div>
+            </div>
+
+            <button
+              onClick={sair}
+              className="rounded-lg bg-red-600 px-3 py-2 text-white"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6 hidden md:block">
+          <h2 className="text-3xl font-bold text-slate-900">
+            Painel de Controle
+          </h2>
+          <p className="text-gray-500">
+            Controle de medições, valores, PDFs e envio por WhatsApp.
+          </p>
         </div>
 
         <div className="mb-5 rounded-2xl bg-white p-4 shadow md:p-5">
@@ -477,31 +538,78 @@ Status: ${m.status}`
           </h2>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full rounded-xl border p-3" />
-            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-full rounded-xl border p-3" />
-            <input type="number" placeholder="Diária" value={diaria} onChange={(e) => setDiaria(e.target.value)} className="w-full rounded-xl border p-3" />
-            <input type="number" placeholder="Caminhão" value={caminhao} onChange={(e) => setCaminhao(e.target.value)} className="w-full rounded-xl border p-3" />
-            <input type="number" placeholder="Retro" value={retro} onChange={(e) => setRetro(e.target.value)} className="w-full rounded-xl border p-3" />
+            <input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            />
 
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-xl border p-3">
+            <input
+              type="date"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            />
+
+            <input
+              type="number"
+              placeholder="Diária"
+              value={diaria}
+              onChange={(e) => setDiaria(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            />
+
+            <input
+              type="number"
+              placeholder="Caminhão"
+              value={caminhao}
+              onChange={(e) => setCaminhao(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            />
+
+            <input
+              type="number"
+              placeholder="Retro"
+              value={retro}
+              onChange={(e) => setRetro(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            />
+
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-xl border p-3"
+            >
               <option>Aberta</option>
               <option>Fechada</option>
               <option>Enviada</option>
               <option>Paga</option>
             </select>
 
-            <div className="flex items-center font-bold">
+            <div className="flex items-center rounded-xl border bg-green-50 p-3 font-bold text-green-700">
               Total: {moeda(totalCalculado)}
             </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 md:flex-row">
-            <button onClick={salvarMedicao} disabled={salvando} className="rounded-xl bg-blue-600 p-3 text-white disabled:opacity-50">
-              {salvando ? 'Salvando...' : editandoId ? 'Atualizar Medição' : 'Salvar Medição'}
+            <button
+              onClick={salvarMedicao}
+              disabled={salvando}
+              className="rounded-xl bg-blue-600 p-3 font-bold text-white disabled:opacity-50"
+            >
+              {salvando
+                ? 'Salvando...'
+                : editandoId
+                ? 'Atualizar Medição'
+                : 'Salvar Medição'}
             </button>
 
             {editandoId && (
-              <button onClick={limparFormulario} className="rounded-xl bg-gray-500 p-3 text-white">
+              <button
+                onClick={limparFormulario}
+                className="rounded-xl bg-gray-500 p-3 font-bold text-white"
+              >
                 Cancelar
               </button>
             )}
@@ -509,13 +617,17 @@ Status: ${m.status}`
         </div>
 
         <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card titulo="Total Geral" valor={moeda(totalGeral)} />
-          <Card titulo="Medições" valor={String(medicoes.length)} />
-          <Card titulo="Última Medição" valor={medicoes[0] ? moeda(Number(medicoes[0].total)) : 'R$ 0,00'} />
+          <Card titulo="Total Geral" valor={moeda(totalGeral)} destaque="green" />
+          <Card titulo="Medições" valor={String(medicoes.length)} destaque="blue" />
+          <Card
+            titulo="Última Medição"
+            valor={medicoes[0] ? moeda(Number(medicoes[0].total)) : 'R$ 0,00'}
+            destaque="orange"
+          />
         </div>
 
         <div className="rounded-2xl bg-white p-4 shadow md:p-5">
-          <h2 className="mb-4 font-bold">Medições</h2>
+          <h2 className="mb-4 text-lg font-bold">Medições Cadastradas</h2>
 
           <div className="flex flex-col gap-4 md:hidden">
             {medicoes.map((m) => (
@@ -544,27 +656,31 @@ Status: ${m.status}`
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[1100px] text-left">
               <thead>
-                <tr className="border-b">
-                  <th>Período</th>
-                  <th>Diária</th>
-                  <th>Caminhão</th>
-                  <th>Retro</th>
-                  <th>Status</th>
-                  <th>Total</th>
-                  <th>Ações</th>
+                <tr className="border-b bg-gray-50">
+                  <th className="p-3">Período</th>
+                  <th className="p-3">Diária</th>
+                  <th className="p-3">Caminhão</th>
+                  <th className="p-3">Retro</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Total</th>
+                  <th className="p-3">Ações</th>
                 </tr>
               </thead>
 
               <tbody>
                 {medicoes.map((m) => (
-                  <tr key={m.id} className="border-b">
-                    <td>{m.periodo}</td>
-                    <td>{moeda(Number(m.diaria || 0))}</td>
-                    <td>{moeda(Number(m.caminhao || 0))}</td>
-                    <td>{moeda(Number(m.retro || 0))}</td>
-                    <td>{m.status}</td>
-                    <td>{moeda(Number(m.total || 0))}</td>
-                    <td className="flex flex-wrap gap-2 py-2">
+                  <tr key={m.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3">{m.periodo}</td>
+                    <td className="p-3">{moeda(Number(m.diaria || 0))}</td>
+                    <td className="p-3">{moeda(Number(m.caminhao || 0))}</td>
+                    <td className="p-3">{moeda(Number(m.retro || 0))}</td>
+                    <td className="p-3">
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-blue-700">
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="p-3 font-bold">{moeda(Number(m.total || 0))}</td>
+                    <td className="flex flex-wrap gap-2 p-3">
                       <button onClick={() => editarMedicao(m)} className="rounded-lg bg-yellow-500 px-3 py-1 text-white">Editar</button>
                       <button onClick={() => excluirMedicao(m.id)} className="rounded-lg bg-red-600 px-3 py-1 text-white">Excluir</button>
                       <button onClick={() => visualizarPDF(m)} className="rounded-lg bg-blue-600 px-3 py-1 text-white">Visualizar</button>
@@ -582,11 +698,27 @@ Status: ${m.status}`
   )
 }
 
-function Card({ titulo, valor }: { titulo: string; valor: string }) {
+function Card({
+  titulo,
+  valor,
+  destaque,
+}: {
+  titulo: string
+  valor: string
+  destaque: 'green' | 'blue' | 'orange'
+}) {
+  const cores = {
+    green: 'text-green-700 bg-green-50',
+    blue: 'text-blue-700 bg-blue-50',
+    orange: 'text-orange-700 bg-orange-50',
+  }
+
   return (
     <div className="rounded-2xl bg-white p-5 shadow">
       <p className="text-sm text-gray-500">{titulo}</p>
-      <h2 className="text-2xl font-bold">{valor}</h2>
+      <h2 className={`mt-2 rounded-xl p-3 text-2xl font-bold ${cores[destaque]}`}>
+        {valor}
+      </h2>
     </div>
   )
 }
