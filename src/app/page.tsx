@@ -1,11 +1,27 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
 export default function Home() {
 
-  async function salvarMedicao() {
+  const [medicoes, setMedicoes] = useState<any[]>([])
+
+  async function carregarMedicoes() {
     const { data, error } = await supabase
+      .from('medicoes')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao carregar:', error)
+    } else {
+      setMedicoes(data || [])
+    }
+  }
+
+  async function salvarMedicao() {
+    const { error } = await supabase
       .from('medicoes')
       .insert([
         {
@@ -22,9 +38,13 @@ export default function Home() {
       alert('Erro ao salvar')
     } else {
       alert('Salvo com sucesso!')
-      console.log(data)
+      carregarMedicoes()
     }
   }
+
+  useEffect(() => {
+    carregarMedicoes()
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -69,9 +89,12 @@ export default function Home() {
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card titulo="Total Geral" valor="R$ 0,00" />
-          <Card titulo="Medições" valor="0" />
-          <Card titulo="Última Medição" valor="R$ 0,00" />
+          <Card titulo="Total Geral" valor={`R$ ${medicoes.reduce((acc, m) => acc + (m.total || 0), 0)}`} />
+          <Card titulo="Medições" valor={medicoes.length} />
+          <Card 
+            titulo="Última Medição" 
+            valor={medicoes[0] ? `R$ ${medicoes[0].total}` : 'R$ 0,00'} 
+          />
         </div>
 
         {/* Tabela */}
@@ -88,11 +111,13 @@ export default function Home() {
             </thead>
 
             <tbody>
-              <tr>
-                <td>001</td>
-                <td>Abril 2026</td>
-                <td>R$ 0,00</td>
-              </tr>
+              {medicoes.map((m, index) => (
+                <tr key={m.id}>
+                  <td>{index + 1}</td>
+                  <td>{m.periodo}</td>
+                  <td>R$ {m.total}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
