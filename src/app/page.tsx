@@ -1,3 +1,5 @@
+'use client'
+
 import { supabase } from './supabaseClient'
 
 export default function Home() {
@@ -57,7 +59,6 @@ export default function Home() {
             Gerar Dias
           </button>
 
-          {/* 👇 BOTÃO CONECTADO */}
           <button 
             onClick={salvarMedicao}
             className="bg-blue-600 text-white p-3 rounded-xl"
