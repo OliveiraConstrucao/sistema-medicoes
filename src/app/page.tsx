@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from './supabaseClient'
+import { supabase } from '../supabaseClient'
 
 type Medicao = {
   id: number
@@ -16,7 +16,7 @@ type Medicao = {
   status: string
 }
 
-export default function Home() {
+export default function MedicoesPage() {
   const router = useRouter()
 
   const [medicoes, setMedicoes] = useState<Medicao[]>([])
@@ -28,9 +28,12 @@ export default function Home() {
   const [status, setStatus] = useState('Aberta')
 
   useEffect(() => {
-    const logado = localStorage.getItem('logado')
-    if (!logado) router.push('/login')
-    else carregar()
+    if (!localStorage.getItem('logado')) {
+      router.push('/login')
+      return
+    }
+
+    carregar()
   }, [])
 
   async function carregar() {
@@ -43,40 +46,51 @@ export default function Home() {
   }
 
   function moeda(v: number) {
-    return v.toLocaleString('pt-BR', {
+    return Number(v || 0).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     })
   }
 
-  const totalCalculado =
-    Number(diaria || 0) +
-    Number(caminhao || 0) +
-    Number(retro || 0)
+  function formatarData(data: string) {
+    const [ano, mes, dia] = data.split('-')
+    return `${dia}/${mes}/${ano}`
+  }
+
+  const total = Number(diaria || 0) + Number(caminhao || 0) + Number(retro || 0)
 
   async function salvar() {
-    if (!dataInicio || !dataFim) return alert('Preencha o período')
+    if (!dataInicio || !dataFim) {
+      alert('Informe a data inicial e final')
+      return
+    }
 
-    await supabase.from('medicoes').insert({
-      periodo: `${dataInicio} até ${dataFim}`,
-      diaria,
-      caminhao,
-      retro,
-      status,
-      total: totalCalculado,
-    })
+    await supabase.from('medicoes').insert([
+      {
+        periodo: `${formatarData(dataInicio)} até ${formatarData(dataFim)}`,
+        diaria: Number(diaria || 0),
+        caminhao: Number(caminhao || 0),
+        retro: Number(retro || 0),
+        total,
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        status,
+      },
+    ])
 
     setDataInicio('')
     setDataFim('')
     setDiaria('')
     setCaminhao('')
     setRetro('')
+    setStatus('Aberta')
 
     carregar()
   }
 
   async function excluir(id: number) {
-    if (!confirm('Excluir?')) return
+    if (!confirm('Excluir esta medição?')) return
+
     await supabase.from('medicoes').delete().eq('id', id)
     carregar()
   }
@@ -86,141 +100,177 @@ export default function Home() {
     router.push('/login')
   }
 
-  const totalGeral = medicoes.reduce((acc, m) => acc + Number(m.total || 0), 0)
+  function gerarPDF(m: Medicao) {
+    const janela = window.open('', '_blank')
+    if (!janela) return
+
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Medição</title>
+          <style>
+            body { font-family: Arial; padding: 30px; }
+            img { width: 100%; max-height: 130px; object-fit: contain; margin-bottom: 20px; }
+            .faixa { background:#000; color:#fff; padding:8px; text-align:center; font-weight:bold; }
+            table { width:100%; border-collapse:collapse; margin-top:20px; }
+            th, td { border:1px solid #000; padding:10px; text-align:center; }
+            th { background:#ddd; }
+            .total { text-align:right; font-size:22px; font-weight:bold; margin-top:25px; }
+          </style>
+        </head>
+        <body>
+          <img src="/logo.png" />
+          <div class="faixa">DESPESAS COM DIÁRIAS</div>
+          <h3>Período: ${m.periodo}</h3>
+
+          <table>
+            <tr>
+              <th>Diária</th>
+              <th>Caminhão</th>
+              <th>Retro</th>
+              <th>Total</th>
+            </tr>
+            <tr>
+              <td>${moeda(Number(m.diaria))}</td>
+              <td>${moeda(Number(m.caminhao))}</td>
+              <td>${moeda(Number(m.retro))}</td>
+              <td>${moeda(Number(m.total))}</td>
+            </tr>
+          </table>
+
+          <div class="total">TOTAL FINAL: ${moeda(Number(m.total))}</div>
+
+          <script>window.onload = () => window.print()</script>
+        </body>
+      </html>
+    `)
+
+    janela.document.close()
+  }
+
+  function whatsapp(m: Medicao) {
+    const texto = `Olá, segue medição:
+
+Período: ${m.periodo}
+Diária: ${moeda(Number(m.diaria))}
+Caminhão: ${moeda(Number(m.caminhao))}
+Retro: ${moeda(Number(m.retro))}
+Total: ${moeda(Number(m.total))}
+Status: ${m.status}`
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 md:flex">
-
-      {/* MENU PC */}
       <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col md:bg-slate-950 md:text-white">
-
-        <div className="flex flex-col items-center border-b border-slate-800 p-6">
-          <img
-            src="/logopainel.png"
-            className="mb-4 h-24 w-24 object-contain"
-          />
-          <h1 className="text-center font-bold">Oliveira Construção</h1>
+        <div className="border-b border-slate-800 p-6 text-center">
+          <img src="/logopainel.png" className="mx-auto mb-4 h-24 w-24 object-contain" />
+          <h1 className="font-bold">Oliveira Construção</h1>
+          <p className="text-sm text-slate-400">Sistema de Medições</p>
         </div>
 
         <nav className="flex-1 space-y-2 p-4">
-
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex w-full gap-2 rounded-xl bg-slate-800 p-3"
-          >
-            📊 Painel
-          </button>
-
-          <button
-            onClick={() => document.getElementById('medicoes')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex w-full gap-2 rounded-xl p-3 hover:bg-slate-800"
-          >
-            📄 Medições
-          </button>
-
-          <button
-            onClick={() => document.getElementById('resumo')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex w-full gap-2 rounded-xl p-3 hover:bg-slate-800"
-          >
-            📁 Relatórios
-          </button>
-
-          <button
-            onClick={() => alert('Em breve')}
-            className="flex w-full gap-2 rounded-xl p-3 hover:bg-slate-800"
-          >
-            ⚙️ Config
-          </button>
-
+          <a href="/" className="block rounded-xl px-4 py-3 hover:bg-slate-800">📊 Painel</a>
+          <a href="/medicoes" className="block rounded-xl bg-slate-800 px-4 py-3">📄 Medições</a>
+          <a href="/relatorios" className="block rounded-xl px-4 py-3 hover:bg-slate-800">📁 Relatórios</a>
+          <a href="/configuracoes" className="block rounded-xl px-4 py-3 hover:bg-slate-800">⚙️ Configurações</a>
         </nav>
 
-        <button onClick={sair} className="m-4 bg-red-600 p-2 rounded">
-          Sair
-        </button>
+        <div className="p-4">
+          <button onClick={sair} className="w-full rounded-xl bg-red-600 p-3 font-bold">
+            Sair
+          </button>
+        </div>
       </aside>
 
-      {/* CONTEÚDO */}
-      <main className="w-full p-4 md:ml-64">
-
-        {/* TOPO MOBILE */}
-        <div className="mb-4 md:hidden bg-white p-4 rounded shadow">
-          <div className="flex justify-between items-center">
-            <img src="/logopainel.png" className="h-12" />
-            <button onClick={sair} className="bg-red-600 text-white px-3 py-1 rounded">
+      <main className="w-full p-4 md:ml-64 md:p-8">
+        <div className="mb-5 rounded-2xl bg-white p-4 shadow md:hidden">
+          <div className="mb-4 flex items-center justify-between">
+            <img src="/logopainel.png" className="h-14 w-14 object-contain" />
+            <button onClick={sair} className="rounded-lg bg-red-600 px-3 py-2 text-white">
               Sair
             </button>
           </div>
 
-          {/* MENU MOBILE */}
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            <button onClick={() => window.scrollTo({ top: 0 })} className="bg-black text-white p-2 text-xs rounded">📊 Painel</button>
-            <button onClick={() => document.getElementById('medicoes')?.scrollIntoView()} className="bg-gray-200 p-2 text-xs rounded">📄 Medições</button>
-            <button onClick={() => document.getElementById('resumo')?.scrollIntoView()} className="bg-gray-200 p-2 text-xs rounded">📁 Relatórios</button>
-            <button onClick={() => alert('Em breve')} className="bg-gray-200 p-2 text-xs rounded">⚙️</button>
+          <div className="grid grid-cols-4 gap-2 text-center text-xs">
+            <a href="/" className="rounded-xl bg-slate-100 p-2">📊<br />Painel</a>
+            <a href="/medicoes" className="rounded-xl bg-slate-900 p-2 text-white">📄<br />Medições</a>
+            <a href="/relatorios" className="rounded-xl bg-slate-100 p-2">📁<br />Relatórios</a>
+            <a href="/configuracoes" className="rounded-xl bg-slate-100 p-2">⚙️<br />Config.</a>
           </div>
         </div>
 
-        {/* FORM */}
-        <div className="bg-white p-4 rounded shadow mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <header className="mb-6 rounded-2xl bg-white p-6 shadow">
+          <h2 className="text-3xl font-bold">Medições</h2>
+          <p className="text-gray-500">Cadastre e gerencie as medições.</p>
+        </header>
 
-          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="border p-2 rounded" />
-          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="border p-2 rounded" />
+        <section className="mb-6 rounded-2xl bg-white p-5 shadow">
+          <h3 className="mb-4 font-bold">Nova Medição</h3>
 
-          <input placeholder="Diária" value={diaria} onChange={e => setDiaria(e.target.value)} className="border p-2 rounded" />
-          <input placeholder="Caminhão" value={caminhao} onChange={e => setCaminhao(e.target.value)} className="border p-2 rounded" />
-          <input placeholder="Retro" value={retro} onChange={e => setRetro(e.target.value)} className="border p-2 rounded" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="rounded-xl border p-3" />
+            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="rounded-xl border p-3" />
+            <input type="number" placeholder="Diária" value={diaria} onChange={(e) => setDiaria(e.target.value)} className="rounded-xl border p-3" />
+            <input type="number" placeholder="Caminhão" value={caminhao} onChange={(e) => setCaminhao(e.target.value)} className="rounded-xl border p-3" />
+            <input type="number" placeholder="Retro" value={retro} onChange={(e) => setRetro(e.target.value)} className="rounded-xl border p-3" />
 
-          <button onClick={salvar} className="col-span-full bg-blue-600 text-white p-2 rounded">
-            Salvar
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-xl border p-3">
+              <option>Aberta</option>
+              <option>Fechada</option>
+              <option>Enviada</option>
+              <option>Paga</option>
+            </select>
+
+            <div className="rounded-xl border bg-green-50 p-3 font-bold text-green-700">
+              Total: {moeda(total)}
+            </div>
+          </div>
+
+          <button onClick={salvar} className="mt-4 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white">
+            Salvar Medição
           </button>
+        </section>
 
-        </div>
+        <section className="rounded-2xl bg-white p-5 shadow">
+          <h3 className="mb-4 text-xl font-bold">Medições Cadastradas</h3>
 
-        {/* CARDS */}
-        <div id="resumo" className="grid md:grid-cols-3 gap-4 mb-6">
-          <Card titulo="Total Geral" valor={moeda(totalGeral)} />
-          <Card titulo="Medições" valor={medicoes.length} />
-          <Card titulo="Última" valor={medicoes[0] ? moeda(medicoes[0].total) : 'R$ 0'} />
-        </div>
-
-        {/* TABELA */}
-        <div id="medicoes" className="bg-white p-4 rounded shadow">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th>Período</th>
-                <th>Total</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {medicoes.map(m => (
-                <tr key={m.id}>
-                  <td>{m.periodo}</td>
-                  <td>{moeda(Number(m.total))}</td>
-                  <td>
-                    <button onClick={() => excluir(m.id)} className="bg-red-600 text-white px-2 py-1 rounded">
-                      Excluir
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1000px] text-left">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="p-3">Período</th>
+                  <th className="p-3">Diária</th>
+                  <th className="p-3">Caminhão</th>
+                  <th className="p-3">Retro</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Total</th>
+                  <th className="p-3">Ações</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
 
-          </table>
-        </div>
-
+              <tbody>
+                {medicoes.map((m) => (
+                  <tr key={m.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3">{m.periodo}</td>
+                    <td className="p-3">{moeda(Number(m.diaria))}</td>
+                    <td className="p-3">{moeda(Number(m.caminhao))}</td>
+                    <td className="p-3">{moeda(Number(m.retro))}</td>
+                    <td className="p-3">{m.status}</td>
+                    <td className="p-3 font-bold">{moeda(Number(m.total))}</td>
+                    <td className="flex flex-wrap gap-2 p-3">
+                      <button onClick={() => gerarPDF(m)} className="rounded-lg bg-gray-800 px-3 py-1 text-white">PDF</button>
+                      <button onClick={() => whatsapp(m)} className="rounded-lg bg-green-600 px-3 py-1 text-white">WhatsApp</button>
+                      <button onClick={() => excluir(m.id)} className="rounded-lg bg-red-600 px-3 py-1 text-white">Excluir</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
-    </div>
-  )
-}
-
-function Card({ titulo, valor }: any) {
-  return (
-    <div className="bg-white p-4 rounded shadow">
-      <p className="text-gray-500">{titulo}</p>
-      <h2 className="text-xl font-bold">{valor}</h2>
     </div>
   )
 }
