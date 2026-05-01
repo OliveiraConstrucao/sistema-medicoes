@@ -1,4 +1,29 @@
+import { supabase } from './supabaseClient'
+
 export default function Home() {
+
+  async function salvarMedicao() {
+    const { data, error } = await supabase
+      .from('medicoes')
+      .insert([
+        {
+          periodo: 'Abril 2026',
+          total: 100,
+          data_inicio: '2026-04-01',
+          data_fim: '2026-04-30',
+          status: 'Fechado'
+        }
+      ])
+
+    if (error) {
+      console.error('Erro:', error)
+      alert('Erro ao salvar')
+    } else {
+      alert('Salvo com sucesso!')
+      console.log(data)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-100">
 
@@ -32,7 +57,11 @@ export default function Home() {
             Gerar Dias
           </button>
 
-          <button className="bg-blue-600 text-white p-3 rounded-xl">
+          {/* 👇 BOTÃO CONECTADO */}
+          <button 
+            onClick={salvarMedicao}
+            className="bg-blue-600 text-white p-3 rounded-xl"
+          >
             Nova Medição
           </button>
         </div>
