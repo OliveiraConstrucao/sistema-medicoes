@@ -1,481 +1,146 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from './supabaseClient'
 
-type Medicao = {
-  id: number
-  periodo: string
-  diaria: number
-  caminhao: number
-  retro: number
-  total: number
-  data_inicio: string
-  data_fim: string
-  status: string
-}
-
 export default function Home() {
-  const [medicoes, setMedicoes] = useState<Medicao[]>([])
-  const [editandoId, setEditandoId] = useState<number | null>(null)
+  const router = useRouter()
 
+  const [medicoes, setMedicoes] = useState<any[]>([])
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
   const [diaria, setDiaria] = useState('')
   const [caminhao, setCaminhao] = useState('')
   const [retro, setRetro] = useState('')
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
   const [status, setStatus] = useState('Aberta')
-  const [salvando, setSalvando] = useState(false)
 
-  const totalCalculado =
-    Number(diaria || 0) + Number(caminhao || 0) + Number(retro || 0)
+  const total =
+    Number(diaria || 0) +
+    Number(caminhao || 0) +
+    Number(retro || 0)
 
-  function moeda(valor: number) {
-    return valor.toLocaleString('pt-BR', {
+  function moeda(v: number) {
+    return v.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     })
   }
 
-  function formatarData(data: string) {
-    const [ano, mes, dia] = data.split('-')
-    return `${dia}/${mes}/${ano}`
-  }
+  // 🔒 PROTEÇÃO LOGIN
+  useEffect(() => {
+    const logado = localStorage.getItem('logado')
 
-  const periodoCalculado =
-    dataInicio && dataFim
-      ? `${formatarData(dataInicio)} até ${formatarData(dataFim)}`
-      : ''
+    if (!logado) {
+      router.push('/login')
+      return
+    }
+
+    carregarMedicoes()
+  }, [])
 
   async function carregarMedicoes() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('medicoes')
       .select('*')
       .order('id', { ascending: false })
 
-    if (error) {
-      console.error(error)
-      alert('Erro ao carregar medições')
-      return
-    }
-
     setMedicoes(data || [])
   }
 
-  async function salvarMedicao() {
+  async function salvar() {
     if (!dataInicio || !dataFim) {
-      alert('Informe a data inicial e final')
+      alert('Preencha as datas')
       return
     }
 
-    setSalvando(true)
+    await supabase.from('medicoes').insert([
+      {
+        periodo: `${dataInicio} até ${dataFim}`,
+        diaria: Number(diaria),
+        caminhao: Number(caminhao),
+        retro: Number(retro),
+        total,
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        status,
+      },
+    ])
 
-    if (editandoId) {
-      const { error } = await supabase
-        .from('medicoes')
-        .update({
-          periodo: periodoCalculado,
-          diaria: Number(diaria || 0),
-          caminhao: Number(caminhao || 0),
-          retro: Number(retro || 0),
-          total: totalCalculado,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          status,
-        })
-        .eq('id', editandoId)
-
-      setSalvando(false)
-
-      if (error) {
-        console.error(error)
-        alert('Erro ao atualizar')
-        return
-      }
-
-      alert('Medição atualizada!')
-    } else {
-      const { error } = await supabase.from('medicoes').insert([
-        {
-          periodo: periodoCalculado,
-          diaria: Number(diaria || 0),
-          caminhao: Number(caminhao || 0),
-          retro: Number(retro || 0),
-          total: totalCalculado,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          status,
-        },
-      ])
-
-      setSalvando(false)
-
-      if (error) {
-        console.error(error)
-        alert('Erro ao salvar')
-        return
-      }
-
-      alert('Medição salva!')
-    }
-
-    limparFormulario()
+    alert('Salvo!')
+    limpar()
     carregarMedicoes()
   }
 
-  function editarMedicao(m: Medicao) {
-    setEditandoId(m.id)
-    setDiaria(String(m.diaria || ''))
-    setCaminhao(String(m.caminhao || ''))
-    setRetro(String(m.retro || ''))
-    setDataInicio(m.data_inicio || '')
-    setDataFim(m.data_fim || '')
-    setStatus(m.status || 'Aberta')
-  }
+  async function excluir(id: number) {
+    if (!confirm('Excluir?')) return
 
-  async function excluirMedicao(id: number) {
-    const confirmar = confirm('Tem certeza que deseja excluir esta medição?')
-    if (!confirmar) return
+    await supabase.from('medicoes').delete().eq('id', id)
 
-    const { error } = await supabase.from('medicoes').delete().eq('id', id)
-
-    if (error) {
-      console.error(error)
-      alert('Erro ao excluir')
-      return
-    }
-
-    alert('Medição excluída!')
     carregarMedicoes()
   }
 
-  function limparFormulario() {
-    setEditandoId(null)
+  function limpar() {
+    setDataInicio('')
+    setDataFim('')
     setDiaria('')
     setCaminhao('')
     setRetro('')
-    setDataInicio('')
-    setDataFim('')
     setStatus('Aberta')
   }
 
-  function montarHtmlPDF(m: Medicao) {
-    function formatarDataBR(data: string) {
-      const [ano, mes, dia] = data.split('-')
-      return `${dia}/${mes}/${ano}`
-    }
+  function sair() {
+    localStorage.removeItem('logado')
+    router.push('/login')
+  }
 
-    function obterDiaSemana(data: Date) {
-      return data.toLocaleDateString('pt-BR', { weekday: 'long' })
-    }
+  function visualizar(m: any) {
+    const w = window.open('', '_blank')
 
-    function gerarDiasEntreDatas(inicio: string, fim: string) {
-      const dias = []
-      const dataAtual = new Date(inicio + 'T00:00:00')
-      const dataFinal = new Date(fim + 'T00:00:00')
-
-      while (dataAtual <= dataFinal) {
-        if (dataAtual.getDay() !== 0) {
-          dias.push(new Date(dataAtual))
-        }
-
-        dataAtual.setDate(dataAtual.getDate() + 1)
-      }
-
-      return dias
-    }
-
-    const dias = gerarDiasEntreDatas(m.data_inicio, m.data_fim)
-
-    let subtotalDiaria = 0
-    let subtotalCaminhao = 0
-    let subtotalRetro = 0
-    let subtotalGeral = 0
-
-    const linhas = dias
-      .map((dia, index) => {
-        const isSabado = dia.getDay() === 6
-
-        const valorDiaria = Number(m.diaria || 0)
-        const valorCaminhao = Number(m.caminhao || 0)
-        const valorRetro = isSabado ? 0 : Number(m.retro || 0)
-        const totalDia = valorDiaria + valorCaminhao + valorRetro
-
-        subtotalDiaria += valorDiaria
-        subtotalCaminhao += valorCaminhao
-        subtotalRetro += valorRetro
-        subtotalGeral += totalDia
-
-        return `
-          <tr class="${isSabado ? 'sabado' : ''}">
-            <td>${index + 1}</td>
-            <td>${dia.toLocaleDateString('pt-BR')}</td>
-            <td>${obterDiaSemana(dia)}</td>
-            <td>${moeda(valorDiaria)}</td>
-            <td>${moeda(valorCaminhao)}</td>
-            <td>${moeda(valorRetro)}</td>
-            <td>${moeda(totalDia)}</td>
-          </tr>
-        `
-      })
-      .join('')
-
-    return `
-    <html>
-      <head>
-        <title>Medição</title>
-        <style>
-          @page { size: A4 portrait; margin: 6mm; }
-
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #111;
-          }
-
-          .container {
-            border: 2px solid #111;
-            width: 100%;
-            margin: 0 auto;
-          }
-
-          .logo {
-            text-align: center;
-            padding: 5px;
-          }
-
-          .logo img {
-            width: 100%;
-            max-height: 140px;
-            object-fit: contain;
-          }
-
-          .faixa-preta {
-            background: #111;
-            color: #fff;
-            text-align: center;
-            font-weight: bold;
-            padding: 6px;
-            font-size: 14px;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-          }
-
-          th, td {
-            border: 1px solid #111;
-            padding: 4px;
-            text-align: center;
-          }
-
-          th {
-            background: #111;
-            color: white;
-            font-weight: bold;
-          }
-
-          .descricao th {
-            background: #ddd;
-            color: #111;
-          }
-
-          .periodo {
-            text-align: center;
-            font-weight: bold;
-            padding: 5px;
-            border-left: 1px solid #111;
-            border-right: 1px solid #111;
-          }
-
-          .sabado td {
-            color: #b00000;
-            font-weight: bold;
-          }
-
-          .subtotal td {
-            background: #ddd;
-            font-weight: bold;
-          }
-
-          .extras-title {
-            background: #111;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-          }
-
-          .cinza td {
-            background: #ddd;
-            font-weight: bold;
-          }
-
-          .total-final td {
-            background: #ddd;
-            font-size: 16px;
-            font-weight: bold;
-          }
-
-          .acoes-visualizacao {
-            text-align: center;
-            margin-bottom: 15px;
-          }
-
-          .acoes-visualizacao button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-
-          @media print {
-            .acoes-visualizacao { display: none; }
-          }
-        </style>
-      </head>
-
-      <body>
-        <div class="acoes-visualizacao">
-          <button onclick="window.print()">Imprimir / Salvar PDF</button>
-        </div>
-
-        <div class="container">
-          <div class="logo">
-            <img src="/logo.png" />
-          </div>
-
-          <div class="faixa-preta">DESPESAS COM DIÁRIAS</div>
-
-          <table class="descricao">
-            <thead>
-              <tr>
-                <th>DESCRIÇÃO</th>
-                <th>VALOR</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>DIÁRIA: LÉO MAIS 1 COLABORADOR</td>
-                <td>${moeda(Number(m.diaria || 0))}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="periodo">
-            DIAS TRABALHADOS: ${formatarDataBR(m.data_inicio)} a ${formatarDataBR(m.data_fim)}
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>DIAS</th>
-                <th>DIA DO MÊS</th>
-                <th>DIA DA SEMANA</th>
-                <th>DIÁRIA/LÉO</th>
-                <th>CAMINHÃO</th>
-                <th>RETRO</th>
-                <th>TOTAL</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              ${linhas}
-
-              <tr class="subtotal">
-                <td colspan="3">SUBTOTAL DIÁRIAS</td>
-                <td>${moeda(subtotalDiaria)}</td>
-                <td>${moeda(subtotalCaminhao)}</td>
-                <td>${moeda(subtotalRetro)}</td>
-                <td>${moeda(subtotalGeral)}</td>
-              </tr>
-
-              <tr>
-                <td colspan="7" style="height: 22px;"></td>
-              </tr>
-
-              <tr>
-                <td colspan="7" class="extras-title">SERVIÇOS EXTRAS</td>
-              </tr>
-
-              <tr class="cinza">
-                <td>TIPO</td>
-                <td>DATA</td>
-                <td colspan="4">DESCRIÇÃO</td>
-                <td>VALOR</td>
-              </tr>
-
-              <tr>
-                <td>EXTRA</td>
-                <td>-</td>
-                <td colspan="4">-</td>
-                <td>${moeda(0)}</td>
-              </tr>
-
-              <tr class="total-final">
-                <td colspan="6">TOTAL FINAL</td>
-                <td>${moeda(subtotalGeral)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    w?.document.write(`
+      <html>
+      <body style="font-family:Arial;padding:20px">
+        <img src="/logo.png" style="width:100%;max-height:120px;object-fit:contain"/>
+        <h3>Período: ${m.periodo}</h3>
+        <p>Diária: ${moeda(m.diaria)}</p>
+        <p>Caminhão: ${moeda(m.caminhao)}</p>
+        <p>Retro: ${moeda(m.retro)}</p>
+        <h2>Total: ${moeda(m.total)}</h2>
       </body>
-    </html>
+      </html>
+    `)
+  }
+
+  function gerarPDF(m: any) {
+    const w = window.open('', '_blank')
+
+    w?.document.write(`
+      <html>
+      <body onload="window.print()" style="font-family:Arial;padding:20px">
+        <img src="/logo.png" style="width:100%;max-height:120px;object-fit:contain"/>
+        <h3>Período: ${m.periodo}</h3>
+        <p>Diária: ${moeda(m.diaria)}</p>
+        <p>Caminhão: ${moeda(m.caminhao)}</p>
+        <p>Retro: ${moeda(m.retro)}</p>
+        <h2>Total: ${moeda(m.total)}</h2>
+      </body>
+      </html>
+    `)
+  }
+
+  function whatsapp(m: any) {
+    const texto = `
+Medição:
+${m.periodo}
+
+Total: ${moeda(m.total)}
     `
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(texto)}`,
+      '_blank'
+    )
   }
-
-  function visualizarPDF(m: Medicao) {
-    const janela = window.open('', '_blank')
-
-    if (janela) {
-      janela.document.write(montarHtmlPDF(m))
-      janela.document.close()
-    }
-  }
-
-  function gerarPDF(m: Medicao) {
-    const janela = window.open('', '_blank')
-
-    if (janela) {
-      janela.document.write(montarHtmlPDF(m))
-      janela.document.close()
-
-      janela.onload = () => {
-        setTimeout(() => {
-          janela.print()
-        }, 800)
-      }
-    }
-  }
-
-  function enviarWhatsApp(m: Medicao) {
-    const texto = `Olá, segue medição:
-
-Período: ${m.periodo}
-Diária: ${moeda(Number(m.diaria || 0))}
-Caminhão: ${moeda(Number(m.caminhao || 0))}
-Retro: ${moeda(Number(m.retro || 0))}
-Total: ${moeda(Number(m.total || 0))}
-Status: ${m.status}`
-
-    const link = `https://wa.me/?text=${encodeURIComponent(texto)}`
-    window.open(link, '_blank')
-  }
-
-  useEffect(() => {
-    carregarMedicoes()
-  }, [])
 
   const totalGeral = medicoes.reduce(
     (acc, m) => acc + Number(m.total || 0),
@@ -483,238 +148,109 @@ Status: ${m.status}`
   )
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="p-3 md:p-8 max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-4xl font-bold mb-4">
-          Painel de Controle
-        </h1>
+    <div className="min-h-screen bg-gray-100 p-3 md:p-8">
+      <div className="flex justify-between mb-4">
+        <h1 className="text-2xl font-bold">Painel</h1>
 
-        <div className="bg-white p-4 md:p-5 rounded-2xl shadow mb-5">
-          <h2 className="font-bold mb-4">
-            {editandoId ? 'Editar Medição' : 'Nova Medição'}
-          </h2>
+        <button
+          onClick={sair}
+          className="bg-red-600 text-white px-3 py-1 rounded"
+        >
+          Sair
+        </button>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
-              type="date"
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            />
+      {/* FORM */}
+      <div className="bg-white p-4 rounded-xl shadow mb-4">
+        <div className="grid md:grid-cols-4 gap-2">
+          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="border p-2 rounded"/>
+          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="border p-2 rounded"/>
+          <input placeholder="Diária" value={diaria} onChange={e => setDiaria(e.target.value)} className="border p-2 rounded"/>
+          <input placeholder="Caminhão" value={caminhao} onChange={e => setCaminhao(e.target.value)} className="border p-2 rounded"/>
+          <input placeholder="Retro" value={retro} onChange={e => setRetro(e.target.value)} className="border p-2 rounded"/>
+          <select value={status} onChange={e => setStatus(e.target.value)} className="border p-2 rounded">
+            <option>Aberta</option>
+            <option>Fechada</option>
+          </select>
+        </div>
 
-            <input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            />
+        <p className="mt-2 font-bold">Total: {moeda(total)}</p>
 
-            <input
-              type="number"
-              placeholder="Diária"
-              value={diaria}
-              onChange={(e) => setDiaria(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            />
+        <button
+          onClick={salvar}
+          className="mt-2 bg-blue-600 text-white p-2 rounded"
+        >
+          Salvar
+        </button>
+      </div>
 
-            <input
-              type="number"
-              placeholder="Caminhão"
-              value={caminhao}
-              onChange={(e) => setCaminhao(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            />
+      {/* CARDS */}
+      <div className="grid md:grid-cols-3 gap-3 mb-4">
+        <Card titulo="Total Geral" valor={moeda(totalGeral)} />
+        <Card titulo="Medições" valor={medicoes.length} />
+        <Card
+          titulo="Última"
+          valor={
+            medicoes[0]
+              ? moeda(medicoes[0].total)
+              : 'R$ 0,00'
+          }
+        />
+      </div>
 
-            <input
-              type="number"
-              placeholder="Retro"
-              value={retro}
-              onChange={(e) => setRetro(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            />
+      {/* LISTA MOBILE */}
+      <div className="md:hidden space-y-3">
+        {medicoes.map(m => (
+          <div key={m.id} className="bg-white p-3 rounded shadow">
+            <b>{m.periodo}</b>
+            <p>Total: {moeda(m.total)}</p>
 
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="border p-3 rounded-xl w-full"
-            >
-              <option>Aberta</option>
-              <option>Fechada</option>
-              <option>Enviada</option>
-              <option>Paga</option>
-            </select>
-
-            <div className="flex items-center font-bold">
-              Total: {moeda(totalCalculado)}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button onClick={() => visualizar(m)} className="bg-blue-500 text-white p-1 rounded">Ver</button>
+              <button onClick={() => gerarPDF(m)} className="bg-gray-800 text-white p-1 rounded">PDF</button>
+              <button onClick={() => excluir(m.id)} className="bg-red-600 text-white p-1 rounded">Excluir</button>
+              <button onClick={() => whatsapp(m)} className="bg-green-600 text-white p-1 rounded">Whats</button>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="flex flex-col md:flex-row gap-3 mt-4">
-            <button
-              onClick={salvarMedicao}
-              disabled={salvando}
-              className="bg-blue-600 text-white p-3 rounded-xl disabled:opacity-50"
-            >
-              {salvando
-                ? 'Salvando...'
-                : editandoId
-                ? 'Atualizar Medição'
-                : 'Salvar Medição'}
-            </button>
+      {/* TABELA DESKTOP */}
+      <div className="hidden md:block bg-white p-4 rounded shadow">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th>Período</th>
+              <th>Total</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
 
-            {editandoId && (
-              <button
-                onClick={limparFormulario}
-                className="bg-gray-500 text-white p-3 rounded-xl"
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-          <Card titulo="Total Geral" valor={moeda(totalGeral)} />
-          <Card titulo="Medições" valor={String(medicoes.length)} />
-          <Card
-            titulo="Última Medição"
-            valor={medicoes[0] ? moeda(Number(medicoes[0].total)) : 'R$ 0,00'}
-          />
-        </div>
-
-        <div className="bg-white p-4 md:p-5 rounded-2xl shadow">
-          <h2 className="font-bold mb-4">Medições</h2>
-
-          {/* MOBILE */}
-          <div className="md:hidden flex flex-col gap-4">
-            {medicoes.map((m) => (
-              <div key={m.id} className="border rounded-2xl p-4 shadow-sm">
-                <div className="flex justify-between gap-3 mb-2">
-                  <strong>{m.periodo}</strong>
-                  <span className="font-bold">{moeda(Number(m.total || 0))}</span>
-                </div>
-
-                <p>Diária: {moeda(Number(m.diaria || 0))}</p>
-                <p>Caminhão: {moeda(Number(m.caminhao || 0))}</p>
-                <p>Retro: {moeda(Number(m.retro || 0))}</p>
-                <p>Status: {m.status}</p>
-
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button
-                    onClick={() => editarMedicao(m)}
-                    className="bg-yellow-500 text-white px-3 py-2 rounded-lg"
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => excluirMedicao(m.id)}
-                    className="bg-red-600 text-white px-3 py-2 rounded-lg"
-                  >
-                    Excluir
-                  </button>
-
-                  <button
-                    onClick={() => visualizarPDF(m)}
-                    className="bg-blue-600 text-white px-3 py-2 rounded-lg"
-                  >
-                    Visualizar
-                  </button>
-
-                  <button
-                    onClick={() => gerarPDF(m)}
-                    className="bg-gray-800 text-white px-3 py-2 rounded-lg"
-                  >
-                    PDF
-                  </button>
-
-                  <button
-                    onClick={() => enviarWhatsApp(m)}
-                    className="bg-green-600 text-white px-3 py-2 rounded-lg col-span-2"
-                  >
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
+          <tbody>
+            {medicoes.map(m => (
+              <tr key={m.id}>
+                <td>{m.periodo}</td>
+                <td>{moeda(m.total)}</td>
+                <td className="flex gap-2">
+                  <button onClick={() => visualizar(m)} className="bg-blue-500 text-white px-2 rounded">Ver</button>
+                  <button onClick={() => gerarPDF(m)} className="bg-gray-800 text-white px-2 rounded">PDF</button>
+                  <button onClick={() => excluir(m.id)} className="bg-red-600 text-white px-2 rounded">Excluir</button>
+                  <button onClick={() => whatsapp(m)} className="bg-green-600 text-white px-2 rounded">Whats</button>
+                </td>
+              </tr>
             ))}
-          </div>
-
-          {/* DESKTOP */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left min-w-[1100px]">
-              <thead>
-                <tr className="border-b">
-                  <th>Período</th>
-                  <th>Diária</th>
-                  <th>Caminhão</th>
-                  <th>Retro</th>
-                  <th>Status</th>
-                  <th>Total</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {medicoes.map((m) => (
-                  <tr key={m.id} className="border-b">
-                    <td>{m.periodo}</td>
-                    <td>{moeda(Number(m.diaria || 0))}</td>
-                    <td>{moeda(Number(m.caminhao || 0))}</td>
-                    <td>{moeda(Number(m.retro || 0))}</td>
-                    <td>{m.status}</td>
-                    <td>{moeda(Number(m.total || 0))}</td>
-                    <td className="flex gap-2 py-2 flex-wrap">
-                      <button
-                        onClick={() => editarMedicao(m)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        onClick={() => excluirMedicao(m.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Excluir
-                      </button>
-
-                      <button
-                        onClick={() => visualizarPDF(m)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Visualizar
-                      </button>
-
-                      <button
-                        onClick={() => gerarPDF(m)}
-                        className="bg-gray-800 text-white px-3 py-1 rounded-lg"
-                      >
-                        PDF
-                      </button>
-
-                      <button
-                        onClick={() => enviarWhatsApp(m)}
-                        className="bg-green-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        WhatsApp
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
 
-function Card({ titulo, valor }: { titulo: string; valor: string }) {
+function Card({ titulo, valor }: any) {
   return (
-    <div className="bg-white p-5 rounded-2xl shadow">
-      <p className="text-gray-500 text-sm">{titulo}</p>
-      <h2 className="text-2xl font-bold">{valor}</h2>
+    <div className="bg-white p-4 rounded-xl shadow">
+      <p className="text-gray-500">{titulo}</p>
+      <h2 className="text-xl font-bold">{valor}</h2>
     </div>
   )
 }
