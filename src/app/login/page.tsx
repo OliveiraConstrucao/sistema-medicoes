@@ -17,23 +17,21 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow">
-        <h1 className="mb-4 text-center text-2xl font-bold">
-          Oliveira Construção
-        </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-6 rounded shadow">
+        <h1 className="text-xl mb-4">Login</h1>
 
         <input
           type="password"
-          placeholder="Digite a senha"
+          placeholder="Senha"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          className="mb-4 w-full rounded-xl border p-3"
+          className="border p-2 w-full mb-3"
         />
 
         <button
           onClick={entrar}
-          className="w-full rounded-xl bg-blue-600 p-3 text-white"
+          className="w-full bg-blue-600 text-white p-2"
         >
           Entrar
         </button>
